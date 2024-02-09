@@ -104,7 +104,7 @@ require_once 'includes/chemistry/bootstrap.php';
 $balanceChemEquation = new ChemicalEquationBalancer( 'S + O2 = SO3' );
 
 // Get the balanced equation this way.
-$balancedEquation = $balanceChemEquation->balance_equation();
+$balancedEquation = $balanceChemEquation->balance_equation_html();
 
 // Show the balanced equation.
 echo $balancedEquation;
@@ -123,7 +123,7 @@ $balanceChemEquation = new ChemicalEquationBalancer( 'S + O2 = SO3' );
 $chemEquationPhrase  = new ChemicalEquationPhrase();
 
 // Get the balanced equation this way.
-$balancedEquation = $balanceChemEquation->balance_equation();
+$balancedEquation = $balanceChemEquation->balance_equation_html();
 
 
 echo $balancedEquation;   // Show the balanced equation.
