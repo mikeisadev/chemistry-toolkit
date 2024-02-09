@@ -74,7 +74,7 @@ Equations like these are NOT supported:
 
 Unfortunately these syntaxes are not supported yet:
 - CuSO4 * 5H2O = CuSO4 + H2O
-- Or simbols like MeOH (methanol), EtOH (ethanol) or Ph-OH / PhOH (phenol)
+- Or simbols like MetOH (methanol), EtOH (ethanol) or Ph-OH / PhOH (phenol)
 
 ================================================================
 
