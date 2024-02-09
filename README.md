@@ -1,4 +1,4 @@
-### Chemistry and Math ToolKit
+### Chemistry ToolKit
 
 * Programmer:       Michele Mincone
 * Main language:    PHP
