@@ -94,7 +94,7 @@ require_once 'includes/chemistry/bootstrap.php';
 
 3) Once you've done this, you can instantiate one of the classes to work with chemistry with programming. For example you can use the "ChemicalEquationBalancer" class to start balancing chemical equations. Or you can use the "ChemicalEquationPhrase" to build a phrase giving the balanced equation.
 
-# EXAMPLE 1 - Instantiate the class to balance an equation.
+--- EXAMPLE 1 - Instantiate the class to balance an equation.
 
 ```php
 // Require the bootstrap file.
@@ -112,7 +112,7 @@ echo $balancedEquation;
 
 ===========================================================
 
-# EXAMPLE 2 - Balance an equation and build a phrase on it.
+--- EXAMPLE 2 - Balance an equation and build a phrase on it.
 
 ```php
 // Require the bootstrap file.
