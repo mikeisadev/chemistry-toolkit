@@ -35,6 +35,7 @@ require 'markrogoyski/math-php/src/LinearAlgebra/Matrix.php';
 require 'markrogoyski/math-php/src/LinearAlgebra/MatrixFactory.php';
 require 'markrogoyski/math-php/src/LinearAlgebra/MatrixCatalog.php';
 require 'markrogoyski/math-php/src/LinearAlgebra/NumericMatrix.php';
+require 'markrogoyski/math-php/src/LinearAlgebra/NumericSquareMatrix.php';
 
 // Include RREF Class.
 require 'markrogoyski/math-php/src/LinearAlgebra/Reduction/RowEchelonForm.php';
