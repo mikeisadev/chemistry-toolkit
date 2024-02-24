@@ -23,7 +23,7 @@ class ChemicalEquationBalancer extends ChemicalEquation {
      * full_equation_string
      * splitted_equation
      */
-    private array $parsing_results = [];
+    public array $parsing_results = [];
     
     /**
      * Constructor.
@@ -81,7 +81,7 @@ class ChemicalEquationBalancer extends ChemicalEquation {
      * This function then will set the parsing results of the parsing activity
      * inside this object property called "parsing_results"
      */
-    private function parse_equation() {
+    public function parse_equation() {
         if ( !$this->equation_exists() ) return "No equation set!";
 
         // Init equation array;
@@ -90,14 +90,14 @@ class ChemicalEquationBalancer extends ChemicalEquation {
 
         // Get chemicals (reagents and products + num of atoms)
         preg_match_all(
-            $this->equation_regex,
+            ChemicalEquation::$equation_regex,
             $this->get_equation(),
             $chemicals
         );
 
         // Get signs (plus, equals)
         $signs = preg_split( 
-            $this->equation_regex,
+            ChemicalEquation::$equation_regex,
             $this->get_equation(), 
             -1,
             0
@@ -151,7 +151,7 @@ class ChemicalEquationBalancer extends ChemicalEquation {
          * Get each atom.
          */
         preg_match_all( 
-            $this->equation_regex,
+            ChemicalEquation::$equation_regex,
             $molecule,
             $parsed_molecule
         );
@@ -163,10 +163,48 @@ class ChemicalEquationBalancer extends ChemicalEquation {
          */
         foreach ($parsed_molecule[0] as $atom) {
 
-            // Check if is PARENTHESIS GROUP.
+            // Check if is PARENTHESIS GROUP (e.g. (NO3)2).
             if ( $this->is_parenthesis_group( $atom ) ) {
 
                 $parsed_group = $this->parse_parenthesis_group( $atom );
+
+                foreach ( $parsed_group as $atom => $count ) {
+
+                    if ( array_key_exists( $atom, $atoms ) ) {
+                        $atoms[$atom] += $count;
+                    } else {
+                        $atoms[$atom] = $count;
+                    }
+
+                }
+
+                continue;
+
+            }
+
+            // Check if is hydration GROUP (e.g. *5H2O). 
+            if ( $this->is_hydration_group( $atom ) ) {
+
+                $parsed_group = $this->parse_hydration_group( $atom );
+
+                foreach ( $parsed_group as $atom => $count ) {
+
+                    if ( array_key_exists( $atom, $atoms ) ) {
+                        $atoms[$atom] += $count;
+                    } else {
+                        $atoms[$atom] = $count;
+                    }
+
+                }
+
+                continue;
+
+            }
+
+            // Check if is ION GROUP (e.g. O^-2)
+            if ( $this->is_ion_group( $atom ) ) {
+
+                $parsed_group = $this->parse_ion_group( $atom );
 
                 foreach ( $parsed_group as $atom => $count ) {
 
@@ -237,7 +275,7 @@ class ChemicalEquationBalancer extends ChemicalEquation {
      * e, f, g,...) to proceed then, when we'll solve the equations from the Matrix
      * to a substitution, with the got coefficients, to balance the chemical equation.
      */
-    private function build_coefficient_equation_string(): string|array {
+    public function build_coefficient_equation_string(): string|array {
 
         // Init.
         $coefficient_equation_string = (string) '';
@@ -257,14 +295,14 @@ class ChemicalEquationBalancer extends ChemicalEquation {
         // Build the coefficient equation string
         foreach ( $full_equation_array as $chars ) {
 
-            if ( in_array( $chars, $this->equation_signs ) ) {
+            if ( in_array( $chars, ChemicalEquation::$equation_signs ) ) {
                 $coefficient_equation_string .= ' ' . $chars . ' ';
 
                 $add_coefficient = TRUE;
             } else {
 
                 if ( $add_coefficient ) {
-                    $coefficient_equation_string .= '{{ ' . $this->alphabt[$_index] . ' }}' . $chars;
+                    $coefficient_equation_string .= '{{ ' . Chemistry::$alphabt[$_index] . ' }}' . $chars;
 
                     // We don't need coefficient. We added. Add when switched back because we passed an equation sign.
                     $add_coefficient = FALSE;
@@ -330,7 +368,7 @@ class ChemicalEquationBalancer extends ChemicalEquation {
         // Start imploding chars.
         foreach ($full_equation_array as $chars) {
 
-            if ( in_array( trim($chars), $this->equation_signs ) ) {
+            if ( in_array( trim($chars), ChemicalEquation::$equation_signs ) ) {
                 $full_equation_string .= ' ' . $chars . ' ';
             } else {
                 $full_equation_string .= $chars;
@@ -396,7 +434,7 @@ class ChemicalEquationBalancer extends ChemicalEquation {
         foreach ($full_equation_array as $chars) {
             
             // Letters and numbers.
-            if ( !in_array( $chars, $this->equation_signs ) ) {
+            if ( !in_array( $chars, ChemicalEquation::$equation_signs ) ) {
 
                 // Check if atom is PARENTHESIS GROUP
                 if ( $this->is_parenthesis_group( $chars ) ) {
@@ -424,6 +462,44 @@ class ChemicalEquationBalancer extends ChemicalEquation {
 
                 }
 
+                // Check if is hydration GROUP (e.g. *5H2O). 
+                if ( $this->is_hydration_group( $chars ) ) {
+
+                    $group = $this->parse_hydration_group( $chars );
+
+                    foreach ( $group as $atom => $count ) {
+
+                        if ( array_key_exists( $atom, $splitted_equation[$equation_selector] ) ) {
+                            $splitted_equation[$equation_selector][$atom] += $count;
+                        } else {
+                            $splitted_equation[$equation_selector][$atom] = $count;
+                        }
+
+                    }
+
+                    continue;
+
+                }
+
+                // Check if is ION GROUP (e.g. O^-2)
+                if ( $this->is_ion_group( $chars ) ) {
+
+                    $group = $this->parse_ion_group( $chars );
+
+                    foreach ( $group as $atom => $count ) {
+
+                        if ( array_key_exists( $atom, $splitted_equation[$equation_selector] ) ) {
+                            $splitted_equation[$equation_selector][$atom] += $count;
+                        } else {
+                            $splitted_equation[$equation_selector][$atom] = $count;
+                        }
+
+                    }
+
+                    continue;
+
+                }
+
                 // Check if atom has number.
                 if ( preg_match('/[0-9]+/', $chars, $matches) ) {
 
@@ -448,7 +524,7 @@ class ChemicalEquationBalancer extends ChemicalEquation {
             }
 
             // Signs.
-            if ( in_array( $chars, $this->equation_signs ) ) {
+            if ( in_array( $chars, ChemicalEquation::$equation_signs ) ) {
 
                 switch( $chars ) {
                     case '+':
@@ -584,7 +660,7 @@ class ChemicalEquationBalancer extends ChemicalEquation {
          * We use PREG_MATCH_ALL to get each atom of the group with numbers
          * */
         preg_match_all(
-            $this->equation_regex,
+            ChemicalEquation::$equation_regex,
             $group,
             $matches
         );
@@ -634,6 +710,154 @@ class ChemicalEquationBalancer extends ChemicalEquation {
         }
 
         return $atoms['atoms'];
+    }
+
+    /**
+     * Check if passed string is an hydration group.
+     * 
+     * Recognize things like:
+     * - *3H2O
+     * - *5H2O
+     * - *7H2O
+     */
+    public function is_hydration_group( string $hydration_group ): bool {
+        return preg_match( ChemicalEquation::$hydration_group_regex, $hydration_group ) ? true : false;
+    }
+
+    /**
+     * Parse the hydration group.
+     * 
+     * If an hydration group is recognized, like this one *5H2O, do these steps:
+     * 
+     * - remove "*" sign
+     * - get the multiplier
+     * - calc the total number of atoms
+     */
+    public function parse_hydration_group( string $hydration_group ): array {
+
+        // Init.
+        $atoms      = (array) [];
+        $multiplier = (int) 0;
+
+        preg_match_all( ChemicalEquation::$parse_hydration_group, $hydration_group, $parsed_group );
+
+        foreach ($parsed_group[0] as $char) {
+
+            $atom = (string) '';
+
+            // Match "*"
+            if ( $char === '*' ) continue;
+
+            // Match the multiplier
+            if ( is_numeric($char) ) {
+                $multiplier = (int) $char;
+                continue;
+            }
+
+            // Match atoms + number
+            if ( preg_match( '/[A-Z][a-z]?\d+.|/', $char ) ) {
+
+                if ( preg_match( '/[0-9]+/', $char, $count ) ) {
+                    $atom = str_replace( $count[0], '', $char );
+
+                    $atoms[$atom] = $count[0] * $multiplier;
+                } else {
+                    $atoms[$char] = 1 * $multiplier;
+                }
+
+            }
+        }
+
+        return $atoms;
+
+    }
+
+    /**
+     * Recognize atoms / molecules with electric charges (ion)
+     */
+    public function is_ion_group( string $ion ): bool {
+        return preg_match( ChemicalEquation::$ion_regex, $ion ) ? true : false;
+    }
+
+    /**
+     * Parse atoms / molecules with electric charges (ion)
+     * 
+     * Exclude the electric charge.
+     */
+    public function parse_ion_group( string $ion ): array {
+
+        $atoms = (array) [];
+
+        preg_match_all(
+            ChemicalEquation::$parse_ion_regex,
+            $ion,
+            $p_ion
+        );
+
+        foreach ( $p_ion[0] as $el ) {
+
+            // Recognize the atoms
+            if ( preg_match( '/[A-Z][a-z]?\d*/', $el ) ) {
+
+                $atom   = (string) '';
+                $count  = (int) 0;
+
+                preg_match( '/[0-9]+/', $el, $c );
+
+                if ( $c ) {
+                    $count = $c[0];
+                    $atom = str_replace( $c[0], '', $el );
+                } else {
+                    $count = 1;
+                    $atom = $el;
+                }
+
+                if ( array_key_exists( $atom, $atoms ) ) {
+                    $atoms[$atom] += $count;
+                } else {
+                    $atoms[$atom] = $count;
+                }
+
+            }
+
+        }
+
+        return $atoms;
+
+    }
+
+    /**
+     * Get the charge from an ion.
+     * 
+     * For example, recover +2 from Mg^2+ or -1 from ClO^-
+     */
+    public function get_ion_charge( string $ion ): int {
+
+        $charge = (string) '';
+
+        // Match the exponent of charge (exp = exponent).
+        if ( preg_match( ChemicalEquation::$exp_charge_regex, $ion, $exp ) ) {
+
+            $_exp = str_replace('^', '', $exp[0]);
+
+            switch ( $_exp ) {
+                case '+':
+                    $charge = (int) +1;
+                    break;
+                case '-':
+                    $charge = (int) -1;
+                    break;
+                default:
+                    $charge = (int) $_exp;
+                    break;
+            }
+
+        } else {
+            $charge = 0;
+        }
+
+        return $charge;
+
     }
 
     /**
@@ -762,57 +986,62 @@ class ChemicalEquationBalancer extends ChemicalEquation {
      * 
      * We have 4 molecules: CH4, O2, CO2, H2O
      * 
-     * $reagent_product_keys
+     * So the returned array will be:
+     * 
+     * [ 'CH4', 'O2', 'CO2', 'H2O' ]
+     * 
+     * if the "$reagent_product_keys" is on TRUE, the returned array will be this:
+     * 
+     * [ 
+     *  'reagent_0' => 'CH4', 
+     *  'reagent_1' => 'O2', 
+     *  'product_0' => 'CO2', 
+     *  'product_1' => 'H2O'
+     * ]
      */
     public function get_molecules_equation_involved( bool $reagent_product_keys = false ): bool|array {
 
-        if ( empty($this->parsing_results) ) {
+        // Check if the equation exists.
+        if ( !$this->equation ) {
             echo "Parsing results is empty! Please enter a chemical equation.";
-
             return false;
         }
 
         // Init.
-        $all_molecules = (array) [];
+        $mols = (array) [];
 
-        // Get parsing results.
-        $parsing_results = $this->parsing_results;
+        // Parse the equation with REGEX.
+        preg_match_all(
+            ChemicalEquation::$cmplt_equation_regex,
+            $this->equation,
+            $eq_p
+        );
 
-        // Get full equation array
-        $full_equation_string = $parsing_results['full_equation_string'];
-
-        // Do first splitting operation -> on equal sign (=)
-        $rp_split = explode( '=', $full_equation_string );
-
-        // Split on plus sign.
-        $reagents = explode( '+', $rp_split[0] );
-        $products = explode( '+', $rp_split[1] );
-        
-        // Continue the splitting. Get single molecules.
+        // Counters.
         $count = 0;
+        $state = 'reagent_';
 
-        // Insert reagents.
-        foreach ( $reagents as $molecule ) {
-            
-            $reagent_product_keys ? $all_molecules['reagent_' . $count] = trim($molecule) : array_push( $all_molecules, trim($molecule) );
+        foreach ( $eq_p[0] as $char ) {
+
+            if ( $char === '+' ) continue; // Filter "+" sign
+
+            // On equal sign switch on "product_" side of the equation.
+            if ( $char === '=' ) { 
+                $count = 0;
+                $state = 'product_'; 
+                continue;
+            }
+
+            $reagent_product_keys ?
+                $mols[$state . $count] = trim($char) :
+                array_push( $mols, trim( $char ) );
 
             $count++;
 
-        }
-
-        $count = 0; // Reset counter.
-
-        // Insert products.
-        foreach ( $products as $molecule ) {
-    
-            $reagent_product_keys ? $all_molecules['product_' . $count] = trim($molecule) : array_push( $all_molecules, trim($molecule) );
-
-            $count++;
-            
         }
 
         // Return
-        return $all_molecules;
+        return $mols;
 
     }
 
@@ -954,10 +1183,57 @@ class ChemicalEquationBalancer extends ChemicalEquation {
             }
             
         }
-
+        
         /**
-         * Build Columns.
+         * Add a row for electrons.
+         * 
+         * Loop the entire equation and find which are ions and which are not.
+         * Then extract the electric charge and push everything inside the array.
          */
+        $equation_matrix['e'] = [];
+
+        // Parse the equation completely.
+        preg_match_all(
+            ChemicalEquation::$cmplt_equation_regex,
+            $this->equation,
+            $chars
+        );
+
+        // Track the states (r = reagents, p = products)
+        $state = 'r';
+
+        foreach ($chars[0] as $char) {
+
+            // Jump signs.
+            if ($char === '+') continue;
+            
+            // After the equal sign jump on "p" (products).
+            if ($char === '=') {
+                $state = 'p';
+                continue;
+            }
+            
+            // Get ion charge.
+            $charge = $this->get_ion_charge($char);
+
+            // Do not change the sign to the number if we are in the "reagents".
+            if ( $state === 'r' ) {
+                array_push( $equation_matrix['e'], $charge );
+            }
+
+            // Change the sign of the number if we are in the "products".
+            if ( $state === 'p' ) {
+
+                // Negative becomes positive, positive becomes negative
+                $charge = $charge < 0 ?  abs($charge) : -$charge;
+
+                array_push( $equation_matrix['e'], $charge );
+
+            }
+
+        }
+
+        // Return the matrix.
         return $equation_matrix;
 
     }
@@ -1047,7 +1323,7 @@ class ChemicalEquationBalancer extends ChemicalEquation {
         // Init.
         $eq_sys     = (array) [];
         $eq         = (string) '';
-        $last_row_k = null;
+        $last_row_k = $this->get_matrix_cols() - 1;
 
         // Counter.
         $c          = (int) 0;
@@ -1055,21 +1331,39 @@ class ChemicalEquationBalancer extends ChemicalEquation {
         // Build the system.
         foreach ( $rref_matrix as $row ) {
 
-            if ( is_null($last_row_k) ) $last_row_k = count($row) - 1; 
-            
-            foreach ( $row as $n ) {
-                if ( $n == 0 ) continue;
-                if ( end($row) == $n ) continue;
+            $eq = ''; // Clear the equation.
 
-                array_push( $eq_sys, $n . $this->alphabt[$c] . ' = ' );
-
-                $eq_sys[$c] .= str_replace( '-', '', $row[$last_row_k] ) . $this->alphabt[$last_row_k];
-
-                $c++;
+            foreach ( $row as $k => $n ) {
+                if ($n == 0) continue; // If 0 jump.
+                
+                // Is NOT last element of the row? You're building the equation before the "=" sign!
+                if ($k != $last_row_k) {
+                    $eq .= str_replace( '-', '', $n ) . Chemistry::$alphabt[$c] . ' = ';
+                } else {
+                    $eq .= str_replace( '-', '', $n ) . Chemistry::$alphabt[$last_row_k];
+                }
             }
+
+            array_push( $eq_sys, $eq ); // Push the equation into the array.
+
+            $c++;
 
         }
 
+        /**
+         * Control the equation system.
+         * 
+         * Fixes:
+         * - Remove empty slots of the array.
+         */
+        foreach ($eq_sys as $k => $eq) {
+            
+            // Remove empty eq.
+            if ( empty($eq) ) unset( $eq_sys[$k] );
+
+        }
+
+        // Return the equation system.
         return $eq_sys;
 
     }
@@ -1163,32 +1457,134 @@ class ChemicalEquationBalancer extends ChemicalEquation {
     /**
      * Substitute the missing coefficients.
      */
-    public function add_coefficients_equation_html( string $coefficient_equation, array $coefficient_array ): string {
+    public function add_coefficients_equation( string $coefficient_equation, array $coefficient_array ): string {
 
         // Init.
-        $balanced_equation = (string) '';
-
-        // Re-Build string and add <sub></sub>.
-        foreach (str_split( $coefficient_equation ) as $el) {
-            if ( !is_numeric($el) ) {
-                $balanced_equation .= $el;
-            } else {
-                $balanced_equation .= '<sub>' . $el . '</sub>';
-            }
-        }
+        $balanced_equation = (string) $coefficient_equation;
 
         // Add coefficients to balance the equation.
         foreach ( $coefficient_array as $c => $n ) {
 
             if (intval($n) == 1) {
-                $balanced_equation = str_replace( "{{ $c }}", "", $balanced_equation );
+                $balanced_equation = str_replace( "{{ $c }}", 1, $balanced_equation );
             } else {
-                $balanced_equation = str_replace( "{{ $c }}", "<em>$n</em>", $balanced_equation );
+                $balanced_equation = str_replace( "{{ $c }}", $n, $balanced_equation );
             }
 
         }
 
+        // Return the balanced equation.
         return $balanced_equation;
+
+    }
+
+    /**
+     * Convert the balanced equation to the HTML version.
+     */
+    public function convert_equation_html( string $balanced_equation ): string {
+
+        $eq_html = (string) '';
+
+        // Match each char group of the equation.
+        preg_match_all( 
+            ChemicalEquation::$balanced_equation_regex, 
+            $balanced_equation, 
+            $matches 
+        );
+        
+        // Rebuild the string adding <sub></sub> or <sup></sup> where is needed.
+        foreach ( $matches[0] as $char ) {
+
+            // Get only numbers
+            if ( is_numeric($char) ) {
+                $char == 1 ? 
+                    $eq_html .= "<em class='coefficient-1 hide-c'>" . $char . "</em>" : 
+                    $eq_html .= "<em>" . $char . "</em>";
+            }
+        
+            // Match coefficient placeholders
+            if ( preg_match( ChemicalEquation::$coefficients_regex, $char, $c) ) {
+                $eq_html .= $c[0];
+            }
+        
+            // Match molecules.
+            if ( preg_match( ChemicalEquation::$mol_regex, $char, $mol ) && !$this->is_parenthesis_group($char) && !str_contains($char, '*') && !str_contains($char, '^') && !preg_match( ChemicalEquation::$ion_regex, $char, $ion ) ) {
+                        
+                foreach ( str_split( $mol[0] ) as $el ) {
+                    if ( !is_numeric($el) ) {
+                        $eq_html .= $el;
+                    } else {
+                        $eq_html .= '<sub>' . $el . '</sub>';
+                    }
+                }
+        
+            }
+        
+            // Match parenthesis groups.
+            if ( preg_match( ChemicalEquation::$parenthesis_group_regex, $char, $group ) ) {
+        
+                foreach ( str_split( $group[0] ) as $el ) {
+                    if ( !is_numeric($el) ) {
+                        $eq_html .= $el;
+                    } else {
+                        $eq_html .= '<sub>' . $el . '</sub>';
+                    }
+                }
+        
+            }
+        
+            // Match hydratation groups.
+            if ( preg_match( ChemicalEquation::$hydration_group_regex, $char, $hydra ) ) {
+        
+                preg_match_all( ChemicalEquation::$parse_hydration_group, $hydra[0], $p_hydra );
+        
+                foreach ( $p_hydra[0] as $el ) {
+                            
+                    if ( preg_match( ChemicalEquation::$mol_regex, $el, $mol ) ) {
+                                
+                        foreach ( str_split( $mol[0] ) as $_el ) {
+                            if ( !is_numeric($_el) ) {
+                                $eq_html .= $_el;
+                            } else {
+                                $eq_html .= '<sub>' . $_el . '</sub>';
+                            }
+                        }
+        
+                    } else {
+                        $eq_html .= $el;
+                    }
+        
+                }
+        
+            }
+        
+            // Match electrons
+            if ( preg_match( ChemicalEquation::$electron_regex, $char, $e ) && str_contains($char, '^') && !preg_match( '/[A-Z][a-z]?\d*/', $char, $mol ) ) {
+        
+                $e_arr = explode('^', $e[0]);
+        
+                $eq_html .= $e_arr[0] . '<sup>' . $e_arr[1] . '</sup>';
+        
+            }
+        
+            // Match charges exponents
+            if ( preg_match( ChemicalEquation::$ion_regex, $char, $ion ) && str_contains($char, '^') && preg_match( '/[A-Z][a-z]?\d*/', $char, $mol ) ) {
+        
+                $ion_arr = explode('^', $ion[0]);
+        
+                $eq_html .= $ion_arr[0] . '<sup>' . $ion_arr[1] . '</sup>';
+        
+            }
+        
+            // Match signs
+            if ( in_array( $char, ChemicalEquation::$equation_signs ) ) {
+                $eq_html .= ' ' . $char . ' ';
+            }
+        
+        }
+
+        // Return the equation in HTML form.
+        return $eq_html;
 
     }
 
@@ -1197,7 +1593,7 @@ class ChemicalEquationBalancer extends ChemicalEquation {
      * 
      * Use to get balanced equation.
      */
-    public function balance_equation_html(): string {
+    public function balance_equation(): array {
 
         $matrix         = $this->get_equation_matrix();
 
@@ -1211,10 +1607,47 @@ class ChemicalEquationBalancer extends ChemicalEquation {
         $c_equation     = $this->build_coefficient_equation_string();
         $coefficients   = $this->calc_equation_coefficients( $eq_sys );
 
-        $eq_balanced    = $this->add_coefficients_equation_html( $c_equation, $coefficients );
+        $eq_balanced    = $this->add_coefficients_equation( $c_equation, $coefficients );
 
-        return $eq_balanced;
+        $eq_balanced_html = $this->convert_equation_html( $eq_balanced );
 
+        return [
+            'eq_balanced'       => $eq_balanced,
+            'eq_balanced_html'  => $eq_balanced_html
+        ];
+
+    }
+
+    /**
+     * Debug obtained results.
+     */
+    public function get_all_parsing_results(): array {
+
+        $matrix         = $this->get_equation_matrix();
+
+        // Get a MATRIX without chemical elements as keys.
+        $matrix_wkeys   = $this->get_equation_matrix_keys_free( $matrix );
+
+        $rref           = $this->solve_matrix_rref( $matrix_wkeys );
+
+        $eq_sys         = $this->build_equation_system( $rref );
+
+        $c_equation     = $this->build_coefficient_equation_string();
+        $coefficients   = $this->calc_equation_coefficients( $eq_sys );
+
+        $eq_balanced    = $this->add_coefficients_equation( $c_equation, $coefficients );
+
+        // Return all parsing results
+        return [
+            'matrix'                => $matrix,
+            'matrix_wkeys'          => $matrix_wkeys,
+            'rref'                  => $rref,
+            'equation_system'       => $eq_sys,
+            'coefficients_equation' => $c_equation,
+            'coefficients'          => $coefficients,
+            'balanced_equation'     => $eq_balanced,
+            'parsing_results'       => $this->parsing_results
+        ];
     }
 
 }
