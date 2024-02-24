@@ -107,6 +107,8 @@ $balancedEquation = $balanceChemEquation->balance_equation_html();
 echo $balancedEquation;
 ```
 
-### FEATURES END HERE - MORE OF THEM WILL COME IN THE FUTURE - STAY UPDATED! ###
+----------------
 
-### Last README.md file update: 24 February 2024
+FEATURES END HERE - MORE OF THEM WILL COME IN THE FUTURE - STAY UPDATED! ###
+
+Last README.md file update: 24 February 2024
